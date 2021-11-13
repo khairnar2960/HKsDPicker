@@ -1,247 +1,96 @@
+window.addEventListener("load", () => {
+    let e = document.getElementsByTagName("head")[0],
+        t = document.createElement("style");
+    t.type = "text/css", t.innerHTML = ".picker-wrap{position:relative;margin-top:5px;opacity:0;visibility:hidden;transition:opacity .2s;font-family:Roboto}.picker-wrap.show{opacity:1;visibility:visible}.picker-wrap .picker{margin:0;border-radius:5px;border:1px solid gray;box-sizing:border-box;box-shadow:1px 1px 5px 0 #a9a9a9}.picker{max-width:250px;background:#333;padding:10px}.picker-m,.picker-y{width:48%;padding:3px 0;font-size:11pt;border:none;border-radius:2px;text-align:center;font-family:Roboto;background-color:#e3e3e3}.picker-y{margin-left:9px}.picker-d table{color:#fff;width:100%;font-size:10pt;margin-top:10px}.picker-d table td{width:14.28%;height:25.76px;padding:3px;text-align:center}tr.picker-d-h{margin:15px!important}tr.picker-d-h td.normal{background-color:#109d4e}tr.picker-d-h td.holliday{background-color:#e30303}.picker-d-td{background:#859ba2;border-radius:5px;font-weight:700}.picker-d-d:hover{cursor:pointer;background:#a9a9a9;border-radius:5px;color:#333;font-weight:700}.picker-d-dd{color:#888;background:#4e4e4e;border-radius:5px}", e.appendChild(t), document.getElementById("HKsDPicker").placeholder = "DD/MM/YYYY"
+});
 var picker = {
-  // (A) ATTACH DATEPICKER TO TARGET
-  // target : datepicker will populate this field
-  // container : datepicker will be generated in this container
-  // startmon : start on Monday (default false)
-  // disableday : array of days to disable, e.g. [2,7] to disable Tue and Sun
-  // please provide id="jsDatePicker" for an element
-  attach : function (opt) {
-    // (A1) CREATE NEW DATEPICKER
-    var dp = document.createElement("div");
-    dp.dataset.target = opt.target;
-    dp.dataset.startmon = opt.startmon ? "1" : "0";
-    dp.classList.add("picker");
-    if (opt.disableday) {
-      dp.dataset.disableday = JSON.stringify(opt.disableday);
-    }
-
-    // (A2) DEFAULT TO CURRENT MONTH + YEAR - NOTE: UTC+0!
-    var today = new Date(),
-        thisMonth = today.getUTCMonth(), // Note: Jan is 0
-        thisYear = today.getUTCFullYear(),
-        months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-                  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-
-    // (A3) MONTH SELECT
-    var select = document.createElement("select"),
-        option = null;
-    select.classList.add("picker-m");
-    for (var mth in months) {
-      option = document.createElement("option");
-      option.value = parseInt(mth) + 1;
-      option.text = months[mth];
-      select.appendChild(option);
-    }
-    select.selectedIndex = thisMonth;
-    select.addEventListener("change", function(){ picker.draw(this); });
-    dp.appendChild(select);
-
-    // (A4) YEAR SELECT
-    select = document.createElement("select");
-    select.classList.add("picker-y");
-    for (var y = thisYear; y >= 1947; y--) {
-      option = document.createElement("option");
-      option.value = y;
-      option.text = y;
-      if (y==thisYear) {
-        option.setAttribute ("selected","selected");
-      }
-      select.appendChild(option);
-    }
-    select.addEventListener("change", function(){ picker.draw(this); });
-    dp.appendChild(select);
-
-    // (A5) DAY SELECT
-    var days = document.createElement("div");
-    days.classList.add("picker-d");
-    dp.appendChild(days);
-
-    // (A6) ATTACH DATE PICKER TO TARGET CONTAINER + DRAW THE DATES
-    picker.draw(select);
-
-    // (A6-I) INLINE DATE PICKER
-    if (opt.container) { document.getElementById(opt.container).appendChild(dp); }
-
-    // (A6-P) POPUP DATE PICKER
-    else {
-      // (A6-P-1) MARK THIS AS A "POPUP"
-      var uniqueID = 0;
-      while (document.getElementById("picker-" + uniqueID) != null) {
-        uniqueID = Math.floor(Math.random() * (100 - 2)) + 1;
-      }
-      dp.dataset.popup = "1";
-      dp.dataset.dpid = uniqueID;
-
-      // (A6-P-2) CREATE WRAPPER
-      var wrapper = document.createElement("div");
-      wrapper.id = "picker-" + uniqueID;
-      wrapper.classList.add("picker-wrap");
-      wrapper.appendChild(dp);
-
-      // (A6-P-3) ATTACH ONCLICK TO SHOW/HIDE DATEPICKER
-      var target = document.getElementById(opt.target);
-      target.setAttribute("style", "position: relative;");
-      target.dataset.dp = uniqueID;
-      target.readOnly = true; // Prevent onscreen keyboar on mobile devices
-      target.onfocus = function () {
-        document.getElementById("picker-" + this.dataset.dp).classList.add("show");
-      };
-      wrapper.addEventListener("click", function (evt) {
-        if (evt.target.classList.contains("picker-wrap")) {
-          this.classList.remove("show");
-        }
-      });
-
-      // (A6-P-4) ATTACH POPUP DATEPICKER TO BODY
-      document.body.appendChild(wrapper);
-    }
-  },
-
-
-  // (B) DRAW THE DAYS IN MONTH
-  // el : HTML reference to either year or month selector
-  draw : function (el) {
-    // (B1) GET DATE PICKER COMPONENTS
-    var parent = el.parentElement,
-        year = parent.getElementsByClassName("picker-y")[0].value,
-        month = parent.getElementsByClassName("picker-m")[0].value,
-        days = parent.getElementsByClassName("picker-d")[0];
-
-    // (B2) DATE RANGE CALCULATION - NOTE: UTC+0!
-    var daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate(),
-        startDay = new Date(Date.UTC(year, month-1, 1)).getUTCDay(), // Note: Sun = 0
-        endDay = new Date(Date.UTC(year, month-1, daysInMonth)).getUTCDay(),
-        startDay = startDay==0 ? 7 : startDay,
-        endDay = endDay==0 ? 7 : endDay;
-
-    // (B3) GENERATE DATE SQUARES (IN ARRAY FIRST)
-    var squares = [],
-        disableday = null;
-    if (parent.dataset.disableday) {
-      disableday = JSON.parse(parent.dataset.disableday);
-    }
-
-    // (B4) EMPTY SQUARES BEFORE FIRST DAY OF MONTH
-    if (parent.dataset.startmon=="1" && startDay!=1) {
-      for (var i=1; i<startDay; i++) { squares.push("B"); }
-    }
-    if (parent.dataset.startmon=="0" && startDay!=7) {
-      for (var i=0; i<startDay; i++) { squares.push("B"); }
-    }
-
-    // (B5) DAYS OF MONTH
-    // (B5-1) ALL DAYS ENABLED, JUST ADD
-    if (disableday==null) {
-      for (var i=1; i<=daysInMonth; i++) { squares.push([i, false]);  }
-    }
-
-    // (B5-2) SOME DAYS DISABLED
-    else {
-      var thisday = startDay;
-      for (var i=1; i<=daysInMonth; i++) {
-        // CHECK IF DAY IS DISABLED
-        var disabled = disableday.includes(thisday);
-        // DAY OF MONTH, DISABLED
-        squares.push([i, disabled]);
-        // NEXT DAY
-        thisday++;
-        if (thisday==8) { thisday = 1; }
-      }
-    }
-
-    // (B6) EMPTY SQUARES AFTER LAST DAY OF MONTH
-    if (parent.dataset.startmon=="1" && endDay!=7) {
-      for (var i=endDay; i<7; i++) { squares.push("B"); }
-    }
-    if (parent.dataset.startmon=="0" && endDay!=6) {
-      for (var i=endDay; i<(endDay==7?13:6); i++) { squares.push("B"); }
-    }
-
-    // (B7) DRAW HTML
-    var daynames = ["MO", "TU", "WE", "TH", "FR", "SA"];
-    if (parent.dataset.startmon=="1") { daynames.push("SU"); }
-    else { daynames.unshift("SU"); }
-
-    // (B7-1) HTML DATE HEADER
-    var table = document.createElement("table"),
-        row = table.insertRow(),
-        cell = null;
-        table.setAttribute("style", "border-collapse: collapse;");
-    row.classList.add("picker-d-h");
-    for (let d of daynames) {
-      cell = row.insertCell();
-      cell.innerHTML = d;
-      if (d!=="SU") {
-        cell.setAttribute("style", "background-color: mediumseagreen;");
-      }else{cell.setAttribute("style", "background-color: red;");}
-    }
-
-    // (B7-2) HTML DATE CELLS
-    var total = squares.length,
-        row = table.insertRow(),
-        today = new Date(),
-        todayDate = null;
-    if (today.getUTCMonth()+1 == month && today.getUTCFullYear() == year) {
-      todayDate = today.getUTCDate();
-    }
-    for (var i=0; i<total; i++) {
-      if (i!=total && i%7==0) { row = table.insertRow(); }
-      cell = row.insertCell();
-      if (squares[i] == "B") {
-        cell.classList.add("picker-d-b");
-      } else {
-        cell.innerHTML = squares[i][0];
-        // NOT ALLOWED TO CHOOSE THIS DAY
-        if (squares[i][1]) {
-          cell.classList.add("picker-d-dd");
-        }
-        // ALLOWED TO CHOOSE THIS DAY
+    attach: function(e) {
+        var t = document.createElement("div");
+        t.dataset.target = e.target, t.dataset.startmon = e.startmon ? "1" : "0", t.classList.add("picker"), e.disableday && (t.dataset.disableday = JSON.stringify(e.disableday));
+        var a = new Date,
+            r = a.getUTCMonth(),
+            d = a.getUTCFullYear(),
+            i = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"],
+            n = document.createElement("select"),
+            s = null;
+        for (var o in n.classList.add("picker-m"), i)(s = document.createElement("option")).value = parseInt(o) + 1, s.text = i[o], n.appendChild(s);
+        n.selectedIndex = r, n.addEventListener("change", function() {
+            picker.draw(this)
+        }), t.appendChild(n), (n = document.createElement("select")).classList.add("picker-y");
+        for (var c = d; c >= 1947; c--)(s = document.createElement("option")).value = c, s.text = c, c == d && s.setAttribute("selected", "selected"), n.appendChild(s);
+        n.addEventListener("change", function() {
+            picker.draw(this)
+        }), t.appendChild(n);
+        var l = document.createElement("div");
+        if (l.classList.add("picker-d"), t.appendChild(l), picker.draw(n), e.container) document.getElementById(e.container).appendChild(t);
         else {
-          if (i == todayDate) { cell.classList.add("picker-d-td"); }
-          cell.classList.add("picker-d-d");
-          cell.addEventListener("click", function(){ picker.pick(this); });
+            for (var p = 0; null != document.getElementById("picker-" + p);) p = Math.floor(98 * Math.random()) + 1;
+            t.dataset.popup = "1", t.dataset.dpid = p;
+            var m = document.createElement("div");
+            m.id = "picker-" + p, m.classList.add("picker-wrap"), m.appendChild(t);
+            var u = document.getElementById(e.target);
+            u.dataset.dp = p, u.readOnly = !0, u.onfocus = function() {
+                document.getElementById("picker-" + this.dataset.dp).classList.add("show")
+            }, m.addEventListener("click", function(e) {
+                e.target.classList.contains("picker-wrap") && this.classList.remove("show")
+            }), document.body.appendChild(m)
         }
-      }
+    },
+    draw: function(e) {
+        var t = e.parentElement,
+            a = t.getElementsByClassName("picker-y")[0].value,
+            r = t.getElementsByClassName("picker-m")[0].value,
+            d = t.getElementsByClassName("picker-d")[0],
+            i = new Date(Date.UTC(a, r, 0)).getUTCDate(),
+            n = 0 == (n = new Date(Date.UTC(a, r - 1, 1)).getUTCDay()) ? 7 : n,
+            s = 0 == (s = new Date(Date.UTC(a, r - 1, i)).getUTCDay()) ? 7 : s,
+            o = [],
+            c = null;
+        if (t.dataset.disableday && (c = JSON.parse(t.dataset.disableday)), "1" == t.dataset.startmon && 1 != n)
+            for (var l = 1; l < n; l++) o.push("B");
+        if ("0" == t.dataset.startmon && 7 != n)
+            for (l = 0; l < n; l++) o.push("B");
+        if (null == c)
+            for (l = 1; l <= i; l++) o.push([l, !1]);
+        else {
+            var p = n;
+            for (l = 1; l <= i; l++) {
+                var m = c.includes(p);
+                o.push([l, m]), 8 == ++p && (p = 1)
+            }
+        }
+        if ("1" == t.dataset.startmon && 7 != s)
+            for (l = s; l < 7; l++) o.push("B");
+        if ("0" == t.dataset.startmon && 6 != s)
+            for (l = s; l < (7 == s ? 13 : 6); l++) o.push("B");
+        var u = ["MO", "TU", "WE", "TH", "FR", "SA"];
+        "1" == t.dataset.startmon ? u.push("SU") : u.unshift("SU");
+        var k = document.createElement("table"),
+            h = k.insertRow(),
+            g = null;
+        k.setAttribute("style", "border-collapse: collapse;"), h.classList.add("picker-d-h");
+        for (let e of u)(g = h.insertCell()).innerHTML = e, "SU" == e ? g.setAttribute("class", "holliday") : g.setAttribute("class", "normal");
+        var f = o.length,
+            v = (h = k.insertRow(), new Date),
+            y = null;
+        v.getUTCMonth() + 1 == r && v.getUTCFullYear() == a && (y = v.getUTCDate());
+        for (l = 0; l < f; l++) l != f && l % 7 == 0 && (h = k.insertRow()), g = h.insertCell(), "B" == o[l] ? g.classList.add("picker-d-b") : (g.innerHTML = o[l][0], o[l][1] ? g.classList.add("picker-d-dd") : (l == y && g.classList.add("picker-d-td"), g.classList.add("picker-d-d"), g.addEventListener("click", function() {
+            picker.pick(this)
+        })));
+        d.innerHTML = "", d.appendChild(k)
+    },
+    pick: function(e) {
+        for (var t = e.parentElement; !t.classList.contains("picker");) t = t.parentElement;
+        var a = t.getElementsByClassName("picker-y")[0].value,
+            r = t.getElementsByClassName("picker-m")[0].value,
+            d = e.innerHTML;
+        parseInt(r) < 10 && (r = "0" + r), parseInt(d) < 10 && (d = "0" + d);
+        var i = d + "/" + r + "/" + a;
+        document.getElementById(t.dataset.target).value = i, "1" == t.dataset.popup && document.getElementById("picker-" + t.dataset.dpid).classList.remove("show")
     }
-
-    // (B7-3) ATTACH NEW CALENDAR TO DATEPICKER
-    days.innerHTML = "";
-    days.appendChild(table);
-  },
-
-  // (C) CHOOSE A DATE
-  // el : HTML reference to selected date cell
-  pick : function (el) {
-    // (C1) GET ALL COMPONENTS
-    var parent = el.parentElement;
-    while (!parent.classList.contains("picker")) {
-      parent = parent.parentElement;
-    }
-
-    // (C2) GET FULL SELECTED YEAR MONTH DAY
-    var year = parent.getElementsByClassName("picker-y")[0].value,
-        month = parent.getElementsByClassName("picker-m")[0].value,
-        day = el.innerHTML;
-
-    // DD/MM/YYYY FORMAT - CHANGE FORMAT HERE IF YOU WANT !
-    if (parseInt(month)<10) { month = "0" + month; }
-    if (parseInt(day)<10) { day = "0" + day; }
-    var fullDate = day + "/" + month + "/" + year;
-
-    // (C3) UPDATE SELECTED DATE
-    document.getElementById(parent.dataset.target).value = fullDate;
-
-    // (C4) POPUP ONLY - CLOSE THE POPUP
-    if (parent.dataset.popup == "1") {
-      document.getElementById("picker-" + parent.dataset.dpid).classList.remove("show");
-    }
-  }
 };
-window.addEventListener("load", function(){
-  picker.attach({
-    target: "jsDatePicker",
-    //container: "pick-inline", //Picker Container
-    //disableday : [6, 7], // DISABLE SAT, SUN
-    //startmon: true // WEEK START ON MON
-  });
+window.addEventListener("load", function() {
+    picker.attach({
+        target: "HKsDPicker"
+    })
 });
