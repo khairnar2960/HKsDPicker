@@ -11,7 +11,7 @@ __HKsDPicker__ is an JavaScript Date Picker.
 
 ## [Demo](http://api.apwinroid.in/demo/)
 
-[![DatePicker](http://api.apwinroid.in/data/DatePicker.png)](http://api.apwinroid.in/demo/)
+[![DatePicker](/DatePicker.png)](http://api.apwinroid.in/demo/)
 
 ## Installation
 
